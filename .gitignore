@@ -1,2 +1,3 @@
 .venv
 src/notebooks/.cache.sqlite
+src/fun/__pycache__/api_f.cpython-311.pyc
