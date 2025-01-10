@@ -3,8 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import sys
-## Ad .. to the path
-sys.path.append("..")
+from pathlib import Path
+
+# Add the 'src' directory to the Python path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 from fun.api_f import fetch_nordpool_data, get_weather_forecast
 
 # Define default latitude and longitude
