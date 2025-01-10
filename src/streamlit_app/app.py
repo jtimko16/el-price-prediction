@@ -20,18 +20,35 @@ selected_country_display = st.selectbox("Select a Country:", options=list(countr
 selected_country = country_mapping[selected_country_display]
 
 # Fetch and display Nordpool data
-st.write(f"### Nordpool Electricity Prices for {selected_country_display}")
+st.write(f"### Nordpool Day-Ahead Electricity Prices for {selected_country_display}")
 df_nordpool = fetch_nordpool_data(area=selected_country)
 day_price = df_nordpool["hour"].dt.strftime("%B-%d").iloc[2]
 df_nordpool.insert(1,"day_time",df_nordpool["hour"].dt.strftime("%b-%d %H:%M"))
 
 
-# Create a container for the Nordpool chart
+
+## Split into two columns (first for Nordpool data and second for visualization)
 col1, col2 = st.columns(2) 
 with col1:
     st.write("**Nordpool Electricity Prices**")
     st.dataframe(df_nordpool[['day_time', 'electricity_price']]) # Display the data
 
+with col2:
+    fig, ax = plt.subplots()
+    df_nordpool["electricity_price"] = df_nordpool["electricity_price"].astype(float)
+
+    ## Extract the day prices only hour from hour field
+    df_nordpool["hour"] = df_nordpool["hour"].dt.strftime("%H")
+    df_nordpool = df_nordpool.set_index("hour")
+    df_nordpool.plot(kind="bar", ax=ax)
+    plt.xticks(rotation=90)
+    ## Y label 
+    plt.ylabel("Electricity Price (€/MWh)")
+
+    plt.title(f"Nordpool Electricity Prices {selected_country_display} - {day_price}")
+
+    # Use st.pyplot() to display the plot
+    st.pyplot(fig)
 
 # Input for custom latitude and longitude
 st.sidebar.header("Weather Location:")
@@ -52,11 +69,6 @@ if st.sidebar.button("Fetch Weather Data"):
     # Merge Nordpool and Weather data on hour
     df_merged = pd.merge(df_nordpool, df_weather_forecast, on="hour", how="inner")
     df_weather_forecast["hour"] = df_weather_forecast["hour"].dt.strftime("%b-%d %H:%M")
-
-        # Create a container for the Weather chart
-    with col2:
-        st.write("**Weather Forecast**")
-        st.dataframe(df_weather_forecast) ## Display dataframe
 
    
     st.write("### Merged Data")
