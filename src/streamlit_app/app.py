@@ -21,9 +21,14 @@ selected_country = country_mapping[selected_country_display]
 
 # Fetch and display Nordpool data
 st.write(f"### Nordpool Day-Ahead Electricity Prices for {selected_country_display}")
-df_nordpool = fetch_nordpool_data(area=selected_country)
-day_price = df_nordpool["hour"].dt.strftime("%B-%d").iloc[2]
-df_nordpool.insert(1,"day_time",df_nordpool["hour"].dt.strftime("%b-%d %H:%M"))
+
+try:
+    df_nordpool = fetch_nordpool_data(area=selected_country)
+    day_price = df_nordpool["hour"].dt.strftime("%B-%d").iloc[2]
+    df_nordpool.insert(1,"day_time",df_nordpool["hour"].dt.strftime("%b-%d %H:%M"))
+except:
+    st.error("Failed to fetch Nordpool data. Please try again later.")
+    st.stop()
 
 
 
