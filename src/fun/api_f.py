@@ -2,14 +2,15 @@ from nordpool import elspot
 import pandas as pd
 import requests
 
-def fetch_nordpool_data(area: str = "EE")->pd.DataFrame:
+
+def fetch_nordpool_data(area: str = "EE") -> pd.DataFrame:
     """Fetch one day ahead electricity prices for a specific aread/country
-    
+
     Args:
-        area (str): Two letter country code"""
+        area (str): Usually two letter country code"""
     # Create an instance of the elspot API
     prices_spot = elspot.Prices()
-    
+
     # Fetch hourly prices for today
     data = prices_spot.hourly(areas=[area])
 
@@ -19,7 +20,7 @@ def fetch_nordpool_data(area: str = "EE")->pd.DataFrame:
 
     ## Change timezone to CET (UTC+1)
     area_df["start"] = pd.to_datetime(area_df["start"]).dt.tz_convert("CET")
-    
+
     ## Rename start column to hour and remove end
     area_df = area_df.rename(columns={"start": "datetime"})
     area_df = area_df.drop(columns=["end"])
@@ -30,9 +31,11 @@ def fetch_nordpool_data(area: str = "EE")->pd.DataFrame:
     return area_df
 
 
-def get_weather_forecast(latitude: float = 59.437, longitude: float = 24.7535)->pd.DataFrame:
+def get_weather_forecast(
+    latitude: float = 59.437, longitude: float = 24.7535
+) -> pd.DataFrame:
     """Fetch weather forecast for a specific location
-    
+
     Args:
         latitude (float): Latitude of the location
         longitude (float): Longitude of the location"""
@@ -41,7 +44,7 @@ def get_weather_forecast(latitude: float = 59.437, longitude: float = 24.7535)->
         "latitude": latitude,
         "longitude": longitude,
         "hourly": "temperature_2m,wind_speed_10m,direct_radiation,diffuse_radiation",
-        "timezone": "CET"  # Directly request data in CET
+        "timezone": "CET",  # Directly request data in CET
     }
 
     # Fetch weather data
@@ -59,13 +62,15 @@ def get_weather_forecast(latitude: float = 59.437, longitude: float = 24.7535)->
     diffuse_radiation = hourly_data.get("diffuse_radiation", [])
 
     # Create a DataFrame
-    df = pd.DataFrame({
-        "datetime": pd.to_datetime(times),  # Convert times to datetime
-        "temperature_2m": temperature_2m,
-        "wind_speed_10m": wind_speed_10m,
-        "direct_radiation": direct_radiation,
-        "diffuse_radiation": diffuse_radiation,
-    })
+    df = pd.DataFrame(
+        {
+            "datetime": pd.to_datetime(times),  # Convert times to datetime
+            "temperature_2m": temperature_2m,
+            "wind_speed_10m": wind_speed_10m,
+            "direct_radiation": direct_radiation,
+            "diffuse_radiation": diffuse_radiation,
+        }
+    )
 
     # Ensure timezone is CET
     df["datetime"] = df["datetime"].dt.tz_localize("CET")
