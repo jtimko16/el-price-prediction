@@ -19,7 +19,13 @@ def fetch_nordpool_data(area: str = "EE")->pd.DataFrame:
 
     ## Change timezone to CET (UTC+1)
     area_df["start"] = pd.to_datetime(area_df["start"]).dt.tz_convert("CET")
-    area_df["end"] = pd.to_datetime(area_df["end"]).dt.tz_convert("CET")
+    
+    ## Rename start column to hour and remove end
+    area_df = area_df.rename(columns={"start": "hour"})
+    area_df = area_df.drop(columns=["end"])
+
+    ## Rename value to electricity_price
+    area_df = area_df.rename(columns={"value": "electricity_price"})
 
     return area_df
 
@@ -54,7 +60,7 @@ def get_weather_forecast(latitude: float = 59.437, longitude: float = 24.7535)->
 
     # Create a DataFrame
     df = pd.DataFrame({
-        "time": pd.to_datetime(times),  # Convert times to datetime
+        "hour": pd.to_datetime(times),  # Convert times to datetime
         "temperature_2m": temperature_2m,
         "wind_speed_10m": wind_speed_10m,
         "direct_radiation": direct_radiation,
@@ -62,5 +68,5 @@ def get_weather_forecast(latitude: float = 59.437, longitude: float = 24.7535)->
     })
 
     # Ensure timezone is CET
-    df["time"] = df["time"].dt.tz_localize("CET")
+    df["hour"] = df["hour"].dt.tz_localize("CET")
     return df
