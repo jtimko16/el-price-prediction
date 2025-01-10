@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import plotly.express as px
 import sys
 from pathlib import Path
 
@@ -24,8 +23,8 @@ st.write(f"### Nordpool Day-Ahead Electricity Prices for {selected_country_displ
 
 try:
     df_nordpool = fetch_nordpool_data(area=selected_country)
-    day_price = df_nordpool["hour"].dt.strftime("%B-%d").iloc[2]
-    df_nordpool.insert(1,"day_time",df_nordpool["hour"].dt.strftime("%b-%d %H:%M"))
+    day_price = df_nordpool["datetime"].dt.strftime("%B-%d").iloc[2] ## Day of the day-ahead price
+    df_nordpool.insert(1,"day_time",df_nordpool["datetime"].dt.strftime("%b-%d %H:%M"))
 except:
     st.error("Failed to fetch Nordpool data. Please try again later.")
     st.stop()
@@ -43,9 +42,9 @@ with col2:
     df_nordpool["electricity_price"] = df_nordpool["electricity_price"].astype(float)
 
     ## Extract the day prices only hour from hour field
-    df_nordpool["hour"] = df_nordpool["hour"].dt.strftime("%H")
+    df_nordpool["hour"] = df_nordpool["datetime"].dt.strftime("%H")
     df_nordpool = df_nordpool.set_index("hour")
-    df_nordpool.plot(kind="bar", ax=ax)
+    df_nordpool["electricity_price"].plot(kind="bar", ax=ax)
     plt.xticks(rotation=90)
     ## Y label 
     plt.ylabel("Electricity Price (€/MWh)")
@@ -55,6 +54,10 @@ with col2:
     # Use st.pyplot() to display the plot
     st.pyplot(fig)
 
+
+##-----------Weather Data-----------------##
+
+# Sidebar for user input
 # Input for custom latitude and longitude
 st.sidebar.header("Weather Location:")
 default_latitude = 59.437
@@ -72,34 +75,50 @@ if st.sidebar.button("Fetch Weather Data"):
     df_weather_forecast = get_weather_forecast(latitude, longitude)
 
     # Merge Nordpool and Weather data on hour
-    df_merged = pd.merge(df_nordpool, df_weather_forecast, on="hour", how="inner")
-    df_weather_forecast["hour"] = df_weather_forecast["hour"].dt.strftime("%b-%d %H:%M")
+    df_merged = pd.merge(df_nordpool, df_weather_forecast, on="datetime", how="inner")
+    df_weather_forecast["day_time"] = df_weather_forecast["datetime"].dt.strftime("%b-%d %H:%M")
 
-   
-    st.write("### Merged Data")
-    st.dataframe(df_merged) # Display the merged data
+       
     
 
-st.write("### Data Visualization")
+    st.write("### Data Visualization")
+ # Create a figure and a set of subplots
+    fig, ax1 = plt.subplots(figsize=(12, 6))  # Adjust size for clarity
 
 
-if df_merged.empty:
-    fig, ax = plt.subplots()
-    df_nordpool["electricity_price"] = df_nordpool["electricity_price"].astype(float)
-
-    ## Extract the day prices only hour from hour field
-    df_nordpool["hour"] = df_nordpool["hour"].dt.strftime("%H")
-    df_nordpool = df_nordpool.set_index("hour")
-    df_nordpool.plot(kind="bar", ax=ax)
+    df_merged["hour"] = df_merged["datetime"].dt.strftime("%H")
+    # Plot electricity prices as bars
+    ax1.bar(
+        df_merged["hour"],
+        df_merged["electricity_price"],
+        color="blue",
+        alpha=0.7,
+        label="Electricity Price",
+    )
+    ax1.set_xlabel("Hour")
+    ax1.set_ylabel("Electricity Price (€/MWh)", color="blue")
+    ax1.tick_params(axis="y", labelcolor="blue")
     plt.xticks(rotation=90)
-    ## Y label 
-    plt.ylabel("Electricity Price (€/MWh)")
 
-    plt.title(f"Nordpool Electricity Prices {selected_country_display} - {day_price}")
+    # Add a secondary y-axis for the weather variable
+    ax2 = ax1.twinx()
+    ax2.plot(
+        df_merged["hour"],
+        df_merged[weather_variable],  # Replace with the weather variable column
+        color="red",
+        label="Weather Variable",
+        marker="o",
+    )
+    ax2.set_ylabel(weather_variable, color="red")
+    ax2.tick_params(axis="y", labelcolor="red")
 
-    # Use st.pyplot() to display the plot
+    # Add title and legends
+    plt.title(f"Electricity Price and  Weather")
+    fig.tight_layout()
+
+    # Display the plot
     st.pyplot(fig)
 
-else:
-    fig = px.line(df_merged, x="hour", y=weather_variable, title=f"{weather_variable} Forecast")
-    st.plotly_chart(fig)
+    st.write("### Merged Data")
+    st.dataframe(df_merged) # Display the merged data
+
