@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import plotly.express as px
 import sys
 from pathlib import Path
 
@@ -10,52 +10,47 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from fun.api_f import fetch_nordpool_data, get_weather_forecast
 
-# Define default latitude and longitude
-default_latitude = 59.437
-default_longitude = 24.7535
+# Dropdown for country selection
+country_mapping = {
+    "Estonia": "EE",
+    "Finland": "FI",
+    "Latvia": "LT",
+}
+selected_country_display = st.selectbox("Select a Country:", options=list(country_mapping.keys()))
+selected_country = country_mapping[selected_country_display]
 
-# Streamlit app
-st.title("Electricity Prices and Weather Forecast Viewer")
-st.write("Explore electricity prices and weather forecasts dynamically.")
+# Fetch and display Nordpool data
+st.write(f"### Nordpool Electricity Prices for {selected_country_display}")
+df_nordpool = fetch_nordpool_data(area=selected_country)
+df_nordpool["hour"] = df_nordpool["hour"].dt.strftime("%b-%d %H:%M")
+
+# Create a container for the Nordpool chart
+col1, col2 = st.columns(2) 
+with col1:
+    st.write("**Nordpool Electricity Prices**")
+    st.dataframe(df_nordpool) # Display the data
+    fig_nordpool = px.line(df_nordpool, x="hour", y="electricity_price") 
+    st.plotly_chart(fig_nordpool)
 
 # Input for custom latitude and longitude
-st.sidebar.header("Input Parameters")
+st.sidebar.header("Weather Input Parameters")
+default_latitude = 59.437
+default_longitude = 24.7535
 latitude = st.sidebar.number_input("Enter Latitude:", value=default_latitude, format="%.6f")
 longitude = st.sidebar.number_input("Enter Longitude:", value=default_longitude, format="%.6f")
 
-# Fetch data
-st.write("### Nordpool Electricity Prices")
-df_nordpool = fetch_nordpool_data(area="EE")
-st.write(df_nordpool)
+# Button to fetch weather data
+if st.sidebar.button("Fetch Weather Data"):
+    df_weather_forecast = get_weather_forecast(latitude, longitude)
+    st.write("### Weather Forecast")
+    df_weather_forecast["hour"] = df_weather_forecast["hour"].dt.strftime("%b-%d %H:%M")
 
-# Fetch weather forecast
-df_weather_forecast = get_weather_forecast(latitude, longitude)
-st.write("### Weather Forecast")
-st.write(df_weather_forecast)
-
-# Plot electricity prices
-def plot_prices(data):
-    fig, ax = plt.subplots()
-    ax.plot(data["end"], data["price"], marker="o", label="Price (€/MWh)")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Price (€/MWh)")
-    ax.set_title("Nordpool Electricity Prices")
-    ax.legend()
-    st.pyplot(fig)
-
-# Plot weather data
-def plot_weather(data):
-    fig, ax = plt.subplots()
-    ax.plot(data["datetime"], data["temperature"], marker="o", label="Temperature (°C)")
-    ax.plot(data["datetime"], data["wind_speed"], marker="x", label="Wind Speed (m/s)")
-    ax.set_xlabel("Time")
-    ax.set_title("Weather Forecast")
-    ax.legend()
-    st.pyplot(fig)
-
-# Visualizations
-plot_prices(df_nordpool)
-plot_weather(df_weather_forecast)
-
+        # Create a container for the Weather chart
+    with col2:
+        st.write("**Weather Forecast**")
+        st.dataframe(df_weather_forecast) ## Display dataframe
+        fig_weather = px.line(df_weather_forecast, x="hour", y=["temperature", "wind_speed"]) 
+        st.plotly_chart(fig_weather)
+    
 st.write("### Input Summary")
-st.write(f"Latitude: {latitude}, Longitude: {longitude}")
+st.write(f"Latitude: {latitude}, Longitude: {longitude}, Country: {selected_country_display}")
