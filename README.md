@@ -19,4 +19,3 @@ To run the app locally, use the following command in your terminal:
 
 ```bash
 streamlit run src/streamlit_app/app.py
-
